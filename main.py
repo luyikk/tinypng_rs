@@ -19,7 +19,7 @@ async def main():
         try:
             a = await task
             bar.next()
-            print(f" file:{file} {a[0]}->{a[1]}")
+            print(f"file:{file} {a[0]}->{a[1]}")
         except IOError as e:
             print(e)
         finally:
