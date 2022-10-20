@@ -1,3 +1,4 @@
+use pyo3::exceptions::PyIOError;
 use pyo3::prelude::*;
 use reqwest::{header::LOCATION, Body, Client, Error as ReqwestError, StatusCode};
 use tokio::fs::{self, File};
@@ -28,6 +29,17 @@ impl From<IoError> for TinyPngError {
 impl From<(StatusCode, String)> for TinyPngError {
     fn from(res: (StatusCode, String)) -> Self {
         TinyPngError::Status(format!("{} {}", res.0, res.1))
+    }
+}
+
+impl From<TinyPngError> for PyErr {
+    fn from(err: TinyPngError) -> Self {
+       match err{
+           TinyPngError::Reqwest(e) => PyIOError::new_err(e.to_string()),
+           TinyPngError::Io(e) =>  PyIOError::new_err(e.to_string()),
+           TinyPngError::Location(e) =>PyIOError::new_err(e.to_string()),
+           TinyPngError::Status(e) => PyIOError::new_err(e.to_string()),
+       }
     }
 }
 
@@ -97,7 +109,7 @@ fn rust_sleep(py: Python) -> PyResult<&PyAny> {
 fn compress_image(py: Python,key:String,from:String,to:String) -> PyResult<&PyAny> {
     pyo3_asyncio::tokio::future_into_py(py, async {
         println!("start compress image:{} {} {}", key, from, to);
-        let result = compress_file(key, from, to).await.unwrap();
+        let result = compress_file(key, from, to).await?;
         Ok(Python::with_gil(|py| [result.0,result.1].into_py(py)))
     })
 }
